@@ -29,7 +29,7 @@ class App {
 	}
 	static function test(){
 		$db = new Db();
-		$r = $db::read([1, 5, 9], 'users', 'OBJ');
+		$r = $db::read(['login' => 'webazex@gmail.com'], 'users', 'ARRAY', true);
 		echo '<pre>'.print_r($r).'</pre>';
 	}
 }

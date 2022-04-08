@@ -42,9 +42,14 @@ class Db {
 
 	static function __getListTables(){
 		try {
-			return \R::inspect();
+			$listTables = \R::inspect();
 		}catch (\Exception $e) {
-			echo '<pre>'.$e->getMessage().'</pre>';
+			die('<pre>'.$e->getMessage().'</pre>');
+		}
+		if(empty($listTables)){
+			return [];
+		}else{
+			return $listTables;
 		}
 	}
 
@@ -86,10 +91,7 @@ class Db {
 				':val' => $val
 			]);
 			if(is_null($searched)){
-				return [
-					false,
-					'msg' => "Даних по $field зі значенням $val немає"
-				];
+				return null;
 			}else{
 				return $searched->id;
 			}
@@ -111,12 +113,17 @@ class Db {
 						$tableFields = \R::inspect($tableName);
 						foreach ( $search as $f => $v ) {
 							if(array_key_exists($f, $tableFields)){
-								$id = intval(self::__getId($tableName, $f, $v));
-								if($returnType == 'ARRAY'){
-									$bean = \R::load($tableName, $id);
-									$returned = $bean->export();
-								}elseif($returnType == 'OBJ'){
-									$returned = \R::load($tableName, $id);
+								$id = self::__getId($tableName, $f, $v);
+								if(!(is_null($id))){
+									$id = intval($id);
+									if($returnType == 'ARRAY'){
+										$bean = \R::load($tableName, $id);
+										$returned = $bean->export();
+									}elseif($returnType == 'OBJ'){
+										$returned = \R::load($tableName, $id);
+									}
+								}else{
+									throw new \Exception("Даних по $f зі значенням $v немає", '10');
 								}
 							}else{
 								throw new \Exception('Дане поле не існує', '6');
@@ -156,6 +163,7 @@ class Db {
 			die($errMsg);
 		}
 	}
+
 	static function update($search, array $updated, $tableName){
 		try {
 			if(empty($updated)){
@@ -176,17 +184,21 @@ class Db {
 											if(is_null($searched)){
 												throw new \Exception('Даний запис відсутній', '4');
 											}else{
-												$obj = \R::load($tableName, intval(self::__getId($tableName, $f, $v)));
-												$tableFields = \R::inspect($tableName);
-												foreach ( $updated as $fUpd => $vUpd) {
-													if(array_key_exists($fUpd, $tableFields)){
-														$obj->$fUpd = $vUpd;
-													}else{
-														throw new \Exception('Дане поле не існує', '6');
+												$id = self::__getId($tableName, $f, $v);
+												if(!(is_null($id))){
+													$id = intval($id);
+													$obj = \R::load($tableName, $id);
+													$tableFields = \R::inspect($tableName);
+													foreach ( $updated as $fUpd => $vUpd) {
+														if(array_key_exists($fUpd, $tableFields)){
+															$obj->$fUpd = $vUpd;
+														}else{
+															throw new \Exception('Дане поле не існує', '6');
+														}
 													}
+													\R::store($obj);
+													\R::close();
 												}
-												\R::store($obj);
-												\R::close();
 											}
 										}
 									}
