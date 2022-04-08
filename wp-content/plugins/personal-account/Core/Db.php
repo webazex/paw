@@ -96,6 +96,9 @@ class Db {
 		}
 	}
 
+	static function read(){
+
+	}
 	static function update($search, array $updated, $tableName){
 		try {
 			if(empty($updated)){
@@ -117,8 +120,13 @@ class Db {
 												throw new \Exception('Даний запис відсутній', '4');
 											}else{
 												$obj = \R::load($tableName, intval(self::__getId($tableName, $f, $v)));
+												$tableFields = \R::inspect($tableName);
 												foreach ( $updated as $fUpd => $vUpd) {
-													$obj->$fUpd = $vUpd;
+													if(array_key_exists($fUpd, $tableFields)){
+														$obj->$fUpd = $vUpd;
+													}else{
+														throw new \Exception('Дане поле не існує', '6');
+													}
 												}
 												\R::store($obj);
 												\R::close();
@@ -133,8 +141,13 @@ class Db {
 										throw new \Exception('Даний запис відсутній', '4');
 									}else{
 										$obj = \R::load($tableName, $id);
+										$tableFields = \R::inspect($tableName);
 										foreach ( $updated as $fUpd => $vUpd) {
-											$obj->$fUpd = $vUpd;
+											if(array_key_exists($fUpd, $tableFields)){
+												$obj->$fUpd = $vUpd;
+											}else{
+												throw new \Exception('Дане поле не існує', '6');
+											}
 										}
 										\R::store($obj);
 										\R::close();
