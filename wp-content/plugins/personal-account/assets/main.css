@@ -1,0 +1,85 @@
+.pa__page {
+    position: relative;
+    padding: 30px;
+    background-color: black;
+    min-height: 100vh;
+    height: auto;
+}
+.page__info{
+    width: 90%;
+    text-align: center;
+    color: lightgrey;
+    margin: 20px auto;
+}
+.page__form {
+    max-width: 540px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-auto-rows: auto;
+    grid-column-gap: 30px;
+    padding: 10px;
+    box-shadow: 0 4px 7px 0 #fffffff7;
+    margin: 10px auto;
+}
+.page__form input {
+    background-color: transparent;
+    border: none;
+    border-bottom: 1px solid white;
+    outline: none;
+    padding: 0 5px;
+    color: white;
+    border-radius: 0;
+    transition: all 0.5s ease-in-out;
+    box-shadow: none;
+}
+.page__form input::placeholder {
+    color: white;
+}
+.page__form input:focus {
+    border: none;
+    transition: all 0.5s ease-in-out;
+    border-radius: 3px;
+    box-shadow: 0 0 5px 0 #fffffff7;
+}
+.form__row-btns {
+    grid-column-start: 1;
+    grid-column-end: 3;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-template-rows: 50px;
+    grid-column-gap: 30px;
+    align-items: center;
+    margin: 10px 0;
+}
+.form__row-btns button {
+    background-color: transparent;
+    outline: none;
+    border: none;
+    height: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.form__row-btns button[type="submit"] {
+    color: green;
+    transition: all 0.5s ease-in-out;
+    box-shadow: 0 0 4px green;
+}
+.form__row-btns button[type="submit"]:hover {
+    color: white;
+    transition: all 0.5s ease-in-out;
+    box-shadow: 0 0 0 transparent;
+    background-color: green;
+}
+
+.form__row-btns button[type="reset"] {
+    color: red;
+    transition: all 0.5s ease-in-out;
+    box-shadow: 0 0 4px red;
+}
+.form__row-btns button[type="reset"]:hover {
+    color: white;
+    transition: all 0.5s ease-in-out;
+    box-shadow: 0 0 0 transparent;
+    background-color: red;
+}
