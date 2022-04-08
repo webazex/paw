@@ -1,13 +1,12 @@
 <?php
 namespace PersonalAccount\Core;
 require WP_PLUGIN_DIR.'\\personal-account\\libs\\rb\\rb.php';
-
 class Db
 {
-    protected string $dName;
-    protected string $dUser;
-    protected string $dHost;
-    protected string $dPasw;
+    protected $dName;
+    protected $dUser;
+    protected $dHost;
+    protected $dPasw;
     protected function __getConnectData(){
         return [
             'host' => $this->dHost,
@@ -40,4 +39,28 @@ class Db
             return true;
         }
     }
+	public function createTable($tableName, $data = array()){
+		$table = \R::dispense($tableName);
+		if(!empty($data)){
+			foreach ($data as $k => $v){
+				$table->$k = $v;
+			}
+		}
+		\R::store($table);
+		\R::close();
+	}
+	public function getUserForLogin($login){
+		if(empty($login)){
+			return false;
+		}else{
+			$user = \R::find('users', 'login Like :login', [':login' => $login]);
+			return $user;
+		}
+	}
+	public function update($data = []){
+
+	}
+	static function getId($table, $where){
+
+	}
 }
