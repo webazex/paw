@@ -29,6 +29,7 @@ class App {
 	}
 	static function test(){
 		$db = new Db();
-		$db::update('1', ['login' => 'jhasd@mail.com'], 'users');
+		$r = $db::read([1, 5, 9], 'users', 'OBJ');
+		echo '<pre>'.print_r($r).'</pre>';
 	}
 }

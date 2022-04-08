@@ -2,6 +2,8 @@
 
 namespace PersonalAccount\Core;
 
+use PHPMailer\PHPMailer\Exception;
+
 require_once WP_PLUGIN_DIR . "\\personal-account\\libs\\RB572\\rb.php";
 
 class Db {
@@ -96,8 +98,63 @@ class Db {
 		}
 	}
 
-	static function read(){
-
+	static function read($search, $tableName, $returnType = 'ARRAY', bool $expression = false){
+		try {
+			if(!(($returnType == 'ARRAY') OR ($returnType == 'OBJ'))){
+				throw new \Exception('Вказаного типу повернення даних, 
+				немає в переліку дозволених типів', '8');
+			}
+			$returned = null;
+			if((!empty($search)) AND (!empty($tableName))){
+				if(is_array($search)){
+					if($expression){
+						$tableFields = \R::inspect($tableName);
+						foreach ( $search as $f => $v ) {
+							if(array_key_exists($f, $tableFields)){
+								$id = intval(self::__getId($tableName, $f, $v));
+								if($returnType == 'ARRAY'){
+									$bean = \R::load($tableName, $id);
+									$returned = $bean->export();
+								}elseif($returnType == 'OBJ'){
+									$returned = \R::load($tableName, $id);
+								}
+							}else{
+								throw new \Exception('Дане поле не існує', '6');
+							}
+						}
+					}else{
+						foreach ( $search as $id ) {
+							if(!(is_int($id))){
+								throw new \Exception('Очікується інший тип вхідних даних.', '9');
+							}
+						}
+						if($returnType !== 'ARRAY'){
+							$returnType = 'ARRAY';
+						}
+						$returned = \R::loadAll($tableName, $search);
+					}
+				}
+				if(is_string($search) OR is_int($search)){
+					$id = intval($search);
+					if($returnType == 'ARRAY'){
+						$bean = \R::load($tableName, $id);
+						$returned = $bean->export();
+					}elseif($returnType == 'OBJ'){
+						$returned = \R::load($tableName, $id);
+					}
+				}
+				return $returned;
+			}else{
+				throw new \Exception('Метод для отримання даних не отримав обов‘язкових
+				аргументів', '7');
+			}
+		}catch (\Exception $e){
+			$errMsg = $e->getFile().'<br>'.
+			          $e->getCode().'<br>'.
+			          $e->getLine().'<br>'.
+			          $e->getMessage();
+			die($errMsg);
+		}
 	}
 	static function update($search, array $updated, $tableName){
 		try {
