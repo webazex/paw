@@ -29,6 +29,6 @@ class App {
 	}
 	static function test(){
 		$db = new Db();
-		$db::update('', ['login' => 'ss@mail.com'], 'users');
+		$db::update('1', ['login' => 'jhasd@mail.com'], 'users');
 	}
 }
