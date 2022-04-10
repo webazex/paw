@@ -2,8 +2,6 @@
 
 namespace PersonalAccount\Core;
 
-use PHPMailer\PHPMailer\Exception;
-
 require_once WP_PLUGIN_DIR . "\\personal-account\\libs\\RB572\\rb.php";
 
 class Db {
@@ -11,7 +9,42 @@ class Db {
 	protected $dUser;
 	protected $dHost;
 	protected $dPasw;
-	protected function __getConnectData(){
+
+	protected $tables;
+
+	private static $whiteListTables;
+
+	private static function __setWhiteListTables(){
+		self::$whiteListTables = ['users', 'logs', 'pasettings'];
+	}
+
+
+	static protected function __checkPermitted( string $tableName): bool{
+		try {
+			if(!empty($tableName)){
+				$whiteList = self::getWhiteListTables();
+				if(in_array($tableName, $whiteList)){
+					return  true;
+				}else{
+					return false;
+				}
+			}else{
+				throw new \Exception('Метод верифікації не отримав необхідних аргументів', 13);
+			}
+		}catch (\Exception $e) {
+			$errMsg = $e->getFile().'<br>'.
+			          $e->getCode().'<br>'.
+			          $e->getLine().'<br>'.
+			          $e->getMessage();
+			die($errMsg);
+		}
+	}
+
+	private static function getWhiteListTables(): array {
+		return self::$whiteListTables;
+	}
+
+	protected function __getConnectData(): array {
 		return [
 			'host' => $this->dHost,
 			'name' => $this->dName,
@@ -20,16 +53,19 @@ class Db {
 			'type' => 'mysql',
 		];
 	}
+
 	protected  function __setConnectData(){
 		$this->dHost = DB_HOST;
 		$this->dName = DB_NAME;
 		$this->dUser = DB_USER;
 		$this->dPasw = DB_PASSWORD;
 	}
+
 	public function __construct()
 	{
 		try {
 			$this->__setConnectData();
+			self::__setWhiteListTables();
 			$conStr = $this->__getConnectData()['type'].':host='.$this->dHost.';dbname='.$this->dName;
 			if ( !\R::testConnection() ) {
 				\R::setup($conStr, $this->dUser, $this->dPasw);
@@ -40,43 +76,78 @@ class Db {
 		}
 	}
 
-	static function __getListTables(){
+	static function __insert($tableName, array $data){
 		try {
-			$listTables = \R::inspect();
+			if(empty($tableName)){
+				throw new \Exception('Ім’я таблиці не може бути порожнім', '2');
+			}
+			if(empty($data)){
+				throw new \Exception('Оновлюваний параметр пошуку, повинен бути заданий непустим рядком, 
+						цілим числом, чи масивом з полем та значенням', '3');
+			}
+			if(self::__checkPermitted($tableName)){
+				$insert = \R::dispense($tableName);
+				foreach ( $data as $k => $v ) {
+					if(empty($k)){
+						throw new \Exception('Поле таблиці не може бути порожнім', '1');
+					}else{
+						$insert->$k = $v;
+					}
+				}
+				if(isset($insert)){
+					\R::store($insert);
+					\R::close();
+				}else{
+					return false;
+				}
+			}else{
+				throw new \Exception('Доступ заборонено', '12');
+			}
+		}catch (\Exception $e){
+			$errMsg = $e->getFile().'<br>'.
+			          $e->getCode().'<br>'.
+			          $e->getLine().'<br>'.
+			          $e->getMessage();
+			echo($errMsg);
+		}
+	}
+	static function __getListTables(string $tableName = ''):array{
+		try {
+			if(!empty($tableName)){
+				if(self::__checkPermitted($tableName)){
+					return \R::inspect($tableName);
+				}else{
+					throw new \Exception('Доступ заборонено', '12');
+				}
+			}else{
+				$listTables = \R::inspect();
+				if(empty($listTables)){
+					return [];
+				}else{
+					return array_intersect($listTables, self::getWhiteListTables());
+				}
+			}
 		}catch (\Exception $e) {
 			die('<pre>'.$e->getMessage().'</pre>');
 		}
-		if(empty($listTables)){
-			return [];
-		}else{
-			return $listTables;
-		}
 	}
 
-
-
-	static function create($tableName, $data = []){
+	static function getList(string $tableName = ''):array{
 		try {
-			if(!empty($tableName)){
-				$table = \R::dispense($tableName);
-				if(!empty($data)){
-					foreach ($data as $k => $v){
-						if(empty($k)){
-							throw new \Exception('Поле таблиці не може бути порожнім', '1');
-						}else{
-							$table->$k = $v;
-						}
-					}
-				}
-				\R::store($table);
-				\R::close();
+			$ret = [];
+			if(empty($tableName)){
+				$ret = self::__getListTables();
 			}else{
-				throw new \Exception('Ім’я таблиці не може бути порожнім', '2');
+				$ret = self::__getListTables($tableName);
 			}
 		}catch (\Exception $e){
-			die($e->getMessage());
+			$errMsg = $e->getFile().'<br>'.
+			          $e->getCode().'<br>'.
+			          $e->getLine().'<br>'.
+			          $e->getMessage();
+			echo($errMsg);
 		}
-
+		return $ret;
 	}
 
 	static function __getId($tableName, $field, $val){
@@ -97,6 +168,80 @@ class Db {
 			}
 		}catch (\Exception $e){
 			die($e->getMessage());
+		}
+	}
+
+	static function getId($tableName, array $data){
+		try {
+			$resultArray = [];
+			if(empty($tableName) OR empty($data)){
+				throw new \Exception('Метод для отримання даних не отримав обов‘язкових аргументів', '7');
+			}else{
+				foreach ($data as $f => $v){
+					if(empty($f)){
+						throw new \Exception('Поле таблиці не може бути порожнім', 1);
+					}else{
+						if(is_array($v)){
+							echo "this";
+							foreach ($v as $item){
+								$id = self::__getId($tableName, $f, $item);
+								if(is_null($id)){
+									$resultArray[] = [
+										'id' => false,
+										$f   => $item,
+									];
+								}else{
+									$resultArray[] = [
+										'id' => intval( $id ),
+										$f   => $item,
+									];
+								}
+							}
+						}else{
+							echo "what i this??";
+							$id = self::__getId($tableName, $f, $v);
+							if(is_null($id)){
+								$resultArray[] = [
+									'id' => false,
+									$f   => $v,
+								];
+							}else{
+								$resultArray[] = [
+									'id' => intval( $id ),
+									$f   => $v,
+								];
+							}
+						}
+					}
+				}
+				return $resultArray;
+			}
+		}catch (\Exception $e){
+			$errMsg = $e->getFile().'<br>'.
+			          $e->getCode().'<br>'.
+			          $e->getLine().'<br>'.
+			          $e->getMessage();
+			echo($errMsg);
+		}
+	}
+
+	static function __exsist($tableName, $f, $v){
+		try {
+			if(empty($tableName) OR empty($f)){
+				throw new \Exception('Метод для отримання даних не отримав обов‘язкових аргументів', '7');
+			}else{
+				if(self::__checkPermitted($tableName)){
+					return self::__getId($tableName, $f, $v);
+				}else{
+					throw new \Exception('Доступ заборонено', '12');
+				}
+			}
+		}catch (\Exception $e){
+			$errMsg = $e->getFile().'<br>'.
+			          $e->getCode().'<br>'.
+			          $e->getLine().'<br>'.
+			          $e->getMessage();
+			echo($errMsg);
 		}
 	}
 
@@ -150,6 +295,7 @@ class Db {
 						$returned = \R::load($tableName, $id);
 					}
 				}
+				\R::close();
 				return $returned;
 			}else{
 				throw new \Exception('Метод для отримання даних не отримав обов‘язкових
@@ -239,6 +385,53 @@ class Db {
 					$e->getLine().'<br>'.
 					$e->getMessage();
 			die($errMsg);
+		}
+	}
+
+	static function delete($tableName, $id){
+		try {
+			if(empty($tableName) OR empty($id)){
+				throw new \Exception('Метод видалення не отримав необхідних аргументів', '11');
+			}else{
+				$bean = \R::load($tableName, $id);
+				\R::trash($bean);
+				\R::close();
+
+			}
+		}catch (\Exception $e){
+			$errMsg = $e->getFile().'<br>'.
+			          $e->getCode().'<br>'.
+			          $e->getLine().'<br>'.
+			          $e->getMessage();
+			echo($errMsg);
+		}
+	}
+
+	static function drop($tableNames){
+		try {
+			if(!empty($tableNames)){
+				if(is_array($tableNames)){
+					foreach ($tableNames as $tableName){
+						if(!empty($tableName)){
+							\R::exec('DROP TABLE :tablename;', [':tablename' => $tableName]);
+						}else{
+							throw new \Exception('Метод видалення не отримав необхідних аргументів', '11');
+						}
+					}
+					\R::close();
+				}else{
+					\R::exec('DROP TABLE :tablename;', [':tablename' => $tableNames]);
+					\R::close();
+				}
+			}else{
+				throw new \Exception('Метод видалення не отримав необхідних аргументів', '11');
+			}
+		}catch (\Exception $e){
+			$errMsg = $e->getFile().'<br>'.
+			          $e->getCode().'<br>'.
+			          $e->getLine().'<br>'.
+			          $e->getMessage();
+			echo($errMsg);
 		}
 	}
 }
